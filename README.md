@@ -48,7 +48,7 @@ A real-time, multi-device shipment milestone tracker for Freightysh — built wi
 5. Choose `main` branch, `/ (root)` folder → **Save**
 6. Your app will be live at:
    ```
-   https://yourusername.github.io/freightysh-tracker
+   https://anupaminnit.github.io/freightysh-milestone-tracker
    ```
 
 ### Step 5 — First Launch
