@@ -124,8 +124,8 @@ body{font-family:var(--font-sans);background:var(--navy);color:var(--text-primar
 .logout-link:hover{color:var(--red)}
 .btn-add{width:100%;padding:8px;background:var(--orange);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font-sans);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn-add:hover{background:var(--orange-light)}
-.version-footer{padding:8px 12px 10px;text-align:center;font-size:9px;font-family:var(--font-mono);color:var(--text-muted);letter-spacing:0.5px;border-top:1px solid var(--navy-border);margin-top:8px}
-.version-footer span{color:var(--orange);opacity:0.7}
+.version-footer{padding:7px 12px 9px;text-align:center;font-size:9px;font-family:var(--font-mono);color:var(--text-muted);letter-spacing:0.6px;border-top:1px solid var(--navy-border);background:var(--navy-mid);flex-shrink:0}
+.version-footer span{color:var(--orange)}
 
 /* MAIN */
 .main{flex:1;overflow:hidden;display:flex;flex-direction:column}
@@ -276,7 +276,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
   <div class="center-card">
     <div class="brand-row">
       <div class="brand-icon">F</div>
-      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker</div></div>
+      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.2</span></div></div>
     </div>
     <div class="screen-title">Connect to Supabase</div>
     <div class="screen-desc">Enter your project credentials once. They're saved in your browser — you won't be asked again on this device.</div>
@@ -308,7 +308,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
   <div class="center-card">
     <div class="brand-row">
       <div class="brand-icon">F</div>
-      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker</div></div>
+      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.2</span></div></div>
     </div>
     <div class="auth-tabs">
       <div class="auth-tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</div>
@@ -371,7 +371,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
         <div class="logo-icon">F</div>
         <div><div class="logo-text">Freightysh</div></div>
       </div>
-      <div class="logo-sub">Tracker <span class="rt-dot" id="rt-dot" style="display:none"></span></div>
+      <div class="logo-sub">Tracker &nbsp;<span style="color:var(--orange);letter-spacing:0.5px">v1.2</span> <span class="rt-dot" id="rt-dot" style="display:none"></span></div>
     </div>
     <div class="sidebar-nav">
       <div class="sidebar-nav-label">Menu</div>
@@ -398,8 +398,8 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
         New Consignment
       </button>
-      <div class="version-footer">Freightysh Tracker &nbsp;·&nbsp; <span>v1.1</span></div>
     </div>
+    <div class="version-footer">Freightysh Tracker &nbsp;·&nbsp; <span>v1.1</span></div>
   </div>
 
   <!-- MAIN CONTENT -->
