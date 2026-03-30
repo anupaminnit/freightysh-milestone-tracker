@@ -124,6 +124,8 @@ body{font-family:var(--font-sans);background:var(--navy);color:var(--text-primar
 .logout-link:hover{color:var(--red)}
 .btn-add{width:100%;padding:8px;background:var(--orange);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font-sans);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn-add:hover{background:var(--orange-light)}
+.version-footer{padding:8px 12px 10px;text-align:center;font-size:9px;font-family:var(--font-mono);color:var(--text-muted);letter-spacing:0.5px;border-top:1px solid var(--navy-border);margin-top:8px}
+.version-footer span{color:var(--orange);opacity:0.7}
 
 /* MAIN */
 .main{flex:1;overflow:hidden;display:flex;flex-direction:column}
@@ -396,6 +398,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
         New Consignment
       </button>
+      <div class="version-footer">Freightysh Tracker &nbsp;·&nbsp; <span>v1.1</span></div>
     </div>
   </div>
 
@@ -577,11 +580,6 @@ async function login(){
   if(error){ showErr(err, error.message); btn.disabled=false; btn.textContent='Sign In'; return; }
   currentUser = data.user;
   await loadProfile();
-  if(!userProfile){
-    showErr(err, 'Account exists but profile not found. Please register again.');
-    await sb.auth.signOut();
-    btn.disabled=false; btn.textContent='Sign In'; return;
-  }
   launchApp();
 }
 
@@ -596,7 +594,6 @@ async function signup(){
   if(!name||!email||!pass||!role){ showErr(err,'All fields are required.'); return; }
   if(pass.length < 6){ showErr(err,'Password must be at least 6 characters.'); return; }
   btn.disabled=true; btn.textContent='Creating account...'; hideEl(err); hideEl(ok);
-  // Pass full_name and role as metadata — DB trigger creates the profile row automatically
   const { data, error } = await sb.auth.signUp({
     email, password: pass,
     options: { data: { full_name: name, role } }
@@ -604,10 +601,13 @@ async function signup(){
   if(error){ showErr(err, error.message); btn.disabled=false; btn.textContent='Create Account'; return; }
   if(!data.user){ showErr(err,'Signup failed. Try again.'); btn.disabled=false; btn.textContent='Create Account'; return; }
   currentUser = data.user;
-  // Small wait for the DB trigger to complete before reading the profile
-  await new Promise(r => setTimeout(r, 800));
-  await loadProfile();
-  if(!userProfile){ showErr(err,'Profile setup failed. Please try signing in directly.'); btn.disabled=false; btn.textContent='Create Account'; return; }
+  // Retry up to 5 times waiting for the DB trigger to create the profile
+  for(let i = 0; i < 5; i++){
+    await new Promise(r => setTimeout(r, 600));
+    await loadProfile();
+    if(userProfile) break;
+  }
+  if(!userProfile){ showErr(err,'Profile setup failed. Please try signing in.'); btn.disabled=false; btn.textContent='Create Account'; return; }
   launchApp();
 }
 
@@ -623,7 +623,24 @@ async function logout(){
 async function loadProfile(){
   if(!currentUser) return;
   const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-  userProfile = data || null;
+  if(data){ userProfile = data; return; }
+
+  // Profile missing — create it from auth metadata (handles orphaned accounts)
+  const meta = currentUser.user_metadata || {};
+  const full_name = meta.full_name || currentUser.email.split('@')[0];
+  const role = meta.role || 'shipper';
+  const { error } = await sb.from('profiles').upsert({
+    id: currentUser.id,
+    email: currentUser.email,
+    full_name,
+    role
+  });
+  if(!error){
+    const { data: fresh } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+    userProfile = fresh || null;
+  } else {
+    userProfile = null;
+  }
 }
 
 // ── APP LAUNCH ─────────────────────────────────────────────────
