@@ -276,7 +276,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
   <div class="center-card">
     <div class="brand-row">
       <div class="brand-icon">F</div>
-      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.3</span></div></div>
+      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.4</span></div></div>
     </div>
     <div class="screen-title">Connect to Supabase</div>
     <div class="screen-desc">Enter your project credentials once. They're saved in your browser — you won't be asked again on this device.</div>
@@ -308,7 +308,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
   <div class="center-card">
     <div class="brand-row">
       <div class="brand-icon">F</div>
-      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.3</span></div></div>
+      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.4</span></div></div>
     </div>
     <div class="auth-tabs">
       <div class="auth-tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</div>
@@ -371,7 +371,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
         <div class="logo-icon">F</div>
         <div><div class="logo-text">Freightysh</div></div>
       </div>
-      <div class="logo-sub">Tracker &nbsp;<span style="color:var(--orange);letter-spacing:0.5px">v1.3</span> <span class="rt-dot" id="rt-dot" style="display:none"></span></div>
+      <div class="logo-sub">Tracker &nbsp;<span style="color:var(--orange);letter-spacing:0.5px">v1.4</span> <span class="rt-dot" id="rt-dot" style="display:none"></span></div>
     </div>
     <div class="sidebar-nav">
       <div class="sidebar-nav-label">Menu</div>
@@ -594,32 +594,33 @@ async function signup(){
   if(!name||!email||!pass||!role){ showErr(err,'All fields are required.'); return; }
   if(pass.length < 6){ showErr(err,'Password must be at least 6 characters.'); return; }
   btn.disabled=true; btn.textContent='Creating account...'; hideEl(err); hideEl(ok);
-  const { data, error } = await sb.auth.signUp({
+
+  // Step 1: Create the auth user. Metadata is picked up by the DB trigger to create the profile.
+  const { error: signUpErr } = await sb.auth.signUp({
     email, password: pass,
     options: { data: { full_name: name, role } }
   });
-  if(error){ showErr(err, error.message); btn.disabled=false; btn.textContent='Create Account'; return; }
-  if(!data.user){ showErr(err,'Signup failed. Try again.'); btn.disabled=false; btn.textContent='Create Account'; return; }
-  currentUser = data.user;
-
-  // Explicitly activate the session so subsequent DB calls are authenticated
-  if(data.session) await sb.auth.setSession(data.session);
-
-  // Directly upsert the profile — don't rely solely on the trigger
-  const { error: pErr } = await sb.from('profiles').upsert({
-    id: currentUser.id,
-    email: currentUser.email,
-    full_name: name,
-    role: role
-  }, { onConflict: 'id' });
-
-  if(pErr){
-    // Trigger may have already created it — try reading before giving up
-    await new Promise(r => setTimeout(r, 1000));
+  if(signUpErr){
+    showErr(err, signUpErr.message);
+    btn.disabled=false; btn.textContent='Create Account'; return;
   }
 
+  // Step 2: Sign in immediately to get a guaranteed real authenticated session.
+  // signUp() returns session=null in many Supabase environments; signIn always returns a real session.
+  const { data: signInData, error: signInErr } = await sb.auth.signInWithPassword({ email, password: pass });
+  if(signInErr){
+    showErr(err, 'Account created. Please use Sign In to continue.');
+    btn.disabled=false; btn.textContent='Create Account'; return;
+  }
+  currentUser = signInData.user;
+
+  // Step 3: Wait briefly for DB trigger to complete, then load profile.
+  await new Promise(r => setTimeout(r, 800));
   await loadProfile();
-  if(!userProfile){ showErr(err,'Profile setup failed. Please try signing in.'); btn.disabled=false; btn.textContent='Create Account'; return; }
+  if(!userProfile){
+    showErr(err, 'Account created but profile not found. Please try Sign In.');
+    btn.disabled=false; btn.textContent='Create Account'; return;
+  }
   launchApp();
 }
 
@@ -634,19 +635,14 @@ async function logout(){
 // ── PROFILE ────────────────────────────────────────────────────
 async function loadProfile(){
   if(!currentUser) return;
-  // Retry up to 4 times in case of slight DB lag
-  for(let i = 0; i < 4; i++){
-    const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  userProfile = null;
+  // The DB trigger creates the profile on signup. We just need to read it.
+  // Retry a few times to allow for any server-side lag.
+  for(let i = 0; i < 5; i++){
+    const { data, error } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
     if(data){ userProfile = data; return; }
-    await new Promise(r => setTimeout(r, 500));
+    if(i < 4) await new Promise(r => setTimeout(r, 600));
   }
-  // Last resort — upsert from metadata
-  const meta = currentUser.user_metadata || {};
-  const full_name = meta.full_name || currentUser.email.split('@')[0];
-  const role = meta.role || 'shipper';
-  await sb.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, full_name, role }, { onConflict: 'id' });
-  const { data: fresh } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-  userProfile = fresh || null;
 }
 
 // ── APP LAUNCH ─────────────────────────────────────────────────
