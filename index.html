@@ -596,13 +596,18 @@ async function signup(){
   if(!name||!email||!pass||!role){ showErr(err,'All fields are required.'); return; }
   if(pass.length < 6){ showErr(err,'Password must be at least 6 characters.'); return; }
   btn.disabled=true; btn.textContent='Creating account...'; hideEl(err); hideEl(ok);
-  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  // Pass full_name and role as metadata — DB trigger creates the profile row automatically
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: name, role } }
+  });
   if(error){ showErr(err, error.message); btn.disabled=false; btn.textContent='Create Account'; return; }
   if(!data.user){ showErr(err,'Signup failed. Try again.'); btn.disabled=false; btn.textContent='Create Account'; return; }
   currentUser = data.user;
-  const { error: pErr } = await sb.from('profiles').insert({ id: data.user.id, email, full_name: name, role });
-  if(pErr){ showErr(err,'Account created but profile setup failed: '+pErr.message); btn.disabled=false; btn.textContent='Create Account'; return; }
+  // Small wait for the DB trigger to complete before reading the profile
+  await new Promise(r => setTimeout(r, 800));
   await loadProfile();
+  if(!userProfile){ showErr(err,'Profile setup failed. Please try signing in directly.'); btn.disabled=false; btn.textContent='Create Account'; return; }
   launchApp();
 }
 
