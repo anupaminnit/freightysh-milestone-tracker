@@ -237,6 +237,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
 .upload-btn:hover:not(:disabled){border-color:var(--orange);color:var(--orange)}
 .upload-btn:disabled{opacity:0.3;cursor:not-allowed}
 .upload-btn.uploading{border-style:solid;color:var(--amber);border-color:var(--amber)}
+.attach-required{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--amber);font-family:var(--font-mono);margin-top:4px}
 
 /* MODALS */
 .modal-overlay{position:fixed;inset:0;background:rgba(10,18,28,0.85);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(2px)}
@@ -276,7 +277,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
   <div class="center-card">
     <div class="brand-row">
       <div class="brand-icon">F</div>
-      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.4</span></div></div>
+      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.5</span></div></div>
     </div>
     <div class="screen-title">Connect to Supabase</div>
     <div class="screen-desc">Enter your project credentials once. They're saved in your browser — you won't be asked again on this device.</div>
@@ -308,7 +309,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
   <div class="center-card">
     <div class="brand-row">
       <div class="brand-icon">F</div>
-      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.4</span></div></div>
+      <div><div class="brand-name">Freightysh</div><div class="brand-sub">Shipment Tracker &nbsp;<span style="color:var(--orange)">v1.5</span></div></div>
     </div>
     <div class="auth-tabs">
       <div class="auth-tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</div>
@@ -371,7 +372,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
         <div class="logo-icon">F</div>
         <div><div class="logo-text">Freightysh</div></div>
       </div>
-      <div class="logo-sub">Tracker &nbsp;<span style="color:var(--orange);letter-spacing:0.5px">v1.4</span> <span class="rt-dot" id="rt-dot" style="display:none"></span></div>
+      <div class="logo-sub">Tracker &nbsp;<span style="color:var(--orange);letter-spacing:0.5px">v1.5</span> <span class="rt-dot" id="rt-dot" style="display:none"></span></div>
     </div>
     <div class="sidebar-nav">
       <div class="sidebar-nav-label">Menu</div>
@@ -399,7 +400,7 @@ tr:hover td{background:rgba(30,50,72,0.5);cursor:pointer}
         New Consignment
       </button>
     </div>
-    <div class="version-footer">Freightysh Tracker &nbsp;·&nbsp; <span>v1.1</span></div>
+    <div class="version-footer">Freightysh Tracker &nbsp;·&nbsp; <span>v1.5</span></div>
   </div>
 
   <!-- MAIN CONTENT -->
@@ -831,6 +832,10 @@ async function renderDetail(){
         <div class="ms-name ${ms.done?'done':''}">${m.name}</div>
         ${ms.note?`<div class="ms-note">📝 ${ms.note}</div>`:''}
         ${attachHTML?`<div class="attach-list">${attachHTML}</div>`:''}
+        ${can&&!ms.done&&mAttaches.length===0?`<div class="attach-required">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M5 1v4M5 7v1"/><circle cx="5" cy="5" r="4"/></svg>
+          Attachment required to complete
+        </div>`:''}
       </div>
       <div><span class="party-badge party-${m.party}">${m.party}</span></div>
       <input type="date" class="ms-date" value="${ms.date}" ${!can?'disabled':''} onchange="updateMsField('${c.id}',${m.id},'date',this.value)">
@@ -918,8 +923,21 @@ async function addConsignment(){
 async function toggleMs(cId, mId, checked){
   const c=consignments.find(x=>x.id===cId); if(!c) return;
   const ms=c.milestones.find(x=>x.id===mId); if(!ms) return;
-  ms.done=checked;
-  if(checked&&!ms.date) ms.date=new Date().toISOString().slice(0,10);
+
+  // Block completion if no attachment uploaded
+  if(checked){
+    const attaches = (attachmentsCache[cId] || []).filter(a => a.milestone_id === mId);
+    if(attaches.length === 0){
+      toast('Please attach a document before marking this milestone complete.', 'error');
+      // Revert the checkbox visually
+      const cb = document.querySelector(`input[onchange*="toggleMs('${cId}',${mId}"]`);
+      if(cb) cb.checked = false;
+      return;
+    }
+  }
+
+  ms.done = checked;
+  if(checked && !ms.date) ms.date = new Date().toISOString().slice(0,10);
   await persistMs(c);
 }
 
