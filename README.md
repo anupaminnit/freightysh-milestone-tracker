@@ -1,24 +1,29 @@
-# Freightysh Shipment Tracker — v2
+# Freightysh Shipment Tracker
 
-Role-based milestone tracker with authentication, file attachments, and real-time sync.  
+Role-based shipment milestone tracker with authentication, mandatory file attachments, and real-time sync.  
 Stack: **GitHub Pages** (hosting) + **Supabase** (Postgres DB + Auth + Storage).
 
 **Repository:** [github.com/anupaminnit/freightysh-milestone-tracker](https://github.com/anupaminnit/freightysh-milestone-tracker)  
-**Live App:** [anupaminnit.github.io/freightysh-milestone-tracker](https://anupaminnit.github.io/freightysh-milestone-tracker)
+**Live App:** [anupaminnit.github.io/freightysh-milestone-tracker](https://anupaminnit.github.io/freightysh-milestone-tracker)  
+**Current Version:** `v1.5`
 
 ---
 
-## What's New in v2
+## Features
 
-| Feature | v1 | v2 |
-|---------|----|----|
-| Login system | ❌ | ✅ Email + password auth |
-| Role-based access | ❌ | ✅ Freightysh / CHA / Shipper |
-| CHA sees only their consignments | ❌ | ✅ Enforced via RLS |
-| File attachments per milestone | ❌ | ✅ Supabase Storage |
-| Party-specific upload permissions | ❌ | ✅ Upload only on your milestones |
-| Data persistence | Browser only | ✅ Supabase Postgres |
-| Real-time sync | ✅ | ✅ |
+| Feature | Status |
+|---------|--------|
+| Email + password authentication | ✅ |
+| Role-based access (Freightysh / CHA / Shipper) | ✅ |
+| CHA sees only consignments assigned to them | ✅ |
+| Shipper sees only their own consignment | ✅ |
+| 15-step milestone tracking per consignment | ✅ |
+| Mandatory attachment before milestone completion | ✅ |
+| Party-specific upload permissions | ✅ |
+| Per-milestone notes | ✅ |
+| Real-time sync across devices | ✅ |
+| CSV export | ✅ |
+| Supabase Postgres persistence | ✅ |
 
 ---
 
@@ -27,14 +32,38 @@ Stack: **GitHub Pages** (hosting) + **Supabase** (Postgres DB + Auth + Storage).
 | Action | Freightysh | CHA | Shipper |
 |--------|-----------|-----|---------|
 | Create consignments | ✅ | ❌ | ❌ |
-| View all consignments | ✅ | ❌ (own only) | ❌ (own only) |
+| View all consignments | ✅ | ❌ own only | ❌ own only |
 | Delete consignments | ✅ | ❌ | ❌ |
+| Reset a milestone | ✅ | ❌ | ❌ |
 | Toggle CHA milestones (M2,4,5,6,7,8,10,11,12) | ✅ | ✅ | ❌ |
 | Toggle Shipper milestones (M1, M3) | ✅ | ❌ | ✅ |
 | Toggle Freightysh milestones (M9,13,14,15) | ✅ | ❌ | ❌ |
-| Upload attachments | Anywhere | CHA milestones | Shipper milestones |
+| Upload attachments | Any milestone | CHA milestones only | Shipper milestones only |
 | Add notes | Any milestone | Any milestone | Any milestone |
-| Reset a milestone | ✅ | ❌ | ❌ |
+
+> **Attachment rule:** A milestone cannot be marked complete without at least one document uploaded. The checkbox is blocked and a warning is shown until a file is attached.
+
+---
+
+## The 15 Milestones
+
+| # | Milestone | Responsible Party |
+|---|-----------|------------------|
+| M1 | Goods released from factory via truck | Shipper |
+| M2 | Checklist sent by CHA | CHA |
+| M3 | Checklist approved by shipping party | Shipper |
+| M4 | CHA files for shipping bill | CHA |
+| M5 | Goods received at CHA warehouse | CHA |
+| M6 | Empty container picked & container survey done | CHA |
+| M7 | Loading, stuffing & sealing of container | CHA |
+| M8 | Weighing of container (VGM) | CHA |
+| M9 | SI submission | Freightysh |
+| M10 | Filing of VGM | CHA |
+| M11 | LEO copy & export ready report | CHA |
+| M12 | Filing of e-Shipping Bill | CHA |
+| M13 | Verification of draft BL | Freightysh |
+| M14 | Payment for generated invoice | Freightysh |
+| M15 | Sharing of Seaway BL | Freightysh |
 
 ---
 
@@ -56,7 +85,7 @@ Stack: **GitHub Pages** (hosting) + **Supabase** (Postgres DB + Auth + Storage).
 3. Click **Run**
 4. You should see: `Success. No rows returned`
 
-> **Note:** The schema drops and recreates all tables. If migrating from v1, your old data will be removed.
+> **Note:** The schema drops and recreates all tables on each run. Back up any data before re-running.
 
 ---
 
@@ -64,27 +93,19 @@ Stack: **GitHub Pages** (hosting) + **Supabase** (Postgres DB + Auth + Storage).
 
 1. In Supabase: go to **Storage**
 2. Click **New bucket**
-3. Name: `attachments`
-4. Toggle **Public bucket: ON**
-5. Click **Create bucket**
-
-Then, in **SQL Editor**, run these three storage policies from the bottom of `schema.sql`:
-
-```sql
-create policy "storage_authenticated_upload" ...
-create policy "storage_authenticated_read" ...
-create policy "storage_authenticated_delete" ...
-```
+3. Name: `attachments` | Toggle **Public bucket: ON** | Click **Create bucket**
+4. Go to **SQL Editor → New Query** and run the three storage policies from the bottom of `schema.sql` (uncomment them first)
 
 ---
 
-### Step 4 — Disable Email Confirmation (for internal use)
+### Step 4 — Configure Authentication
 
 1. Go to **Authentication → Providers → Email**
-2. Toggle **Confirm email: OFF**
-3. Click **Save**
-
-> This lets your team sign in immediately after registering. For a public-facing app, leave this on.
+2. Toggle **Enable Email Provider: ON**
+3. Toggle **Confirm email: OFF** (for internal team use)
+4. Click **Save**
+5. Go to **Authentication → Rate Limits**
+6. Set **Email signups** to `100` per hour → **Save**
 
 ---
 
@@ -100,8 +121,8 @@ create policy "storage_authenticated_delete" ...
 ### Step 6 — Deploy to GitHub Pages
 
 1. Push `index.html` to the root of [github.com/anupaminnit/freightysh-milestone-tracker](https://github.com/anupaminnit/freightysh-milestone-tracker)
-2. Go to **Settings → Pages → Deploy from main branch / root**
-3. Your app will be live at: [anupaminnit.github.io/freightysh-milestone-tracker](https://anupaminnit.github.io/freightysh-milestone-tracker)
+2. Go to **Settings → Pages → Source: Deploy from branch → main / root** → **Save**
+3. App goes live at: [anupaminnit.github.io/freightysh-milestone-tracker](https://anupaminnit.github.io/freightysh-milestone-tracker)
 
 ---
 
@@ -109,36 +130,36 @@ create policy "storage_authenticated_delete" ...
 
 1. Open [anupaminnit.github.io/freightysh-milestone-tracker](https://anupaminnit.github.io/freightysh-milestone-tracker)
 2. **Setup screen**: paste your Supabase Project URL + anon key → **Save & Continue**
-3. **Auth screen**: click **Register** and create your Freightysh account (select role: *Freightysh — Internal Team*)
-4. You're in. Create your first consignment.
+3. **Register tab**: enter your name, email, password → select role **Freightysh — Internal Team** → **Create Account**
+4. You are signed in automatically. Create your first consignment.
 
 ---
 
 ## Onboarding CHA and Shippers
 
-### How to give CHA access to a consignment
+### How to give CHA access
 
 1. When creating a consignment, enter the CHA's email in the **CHA Email** field
-2. Share [anupaminnit.github.io/freightysh-milestone-tracker](https://anupaminnit.github.io/freightysh-milestone-tracker) with your CHA
-3. CHA goes to the URL → **Register** → enters their email (must match exactly) → selects role **CHA**
-4. On login, they will see only consignments where their email was entered as CHA Email
-5. They can toggle CHA milestones and upload documents to CHA-tagged milestones
+2. Share the app URL with your CHA: [anupaminnit.github.io/freightysh-milestone-tracker](https://anupaminnit.github.io/freightysh-milestone-tracker)
+3. CHA opens the URL → enters Supabase credentials (same as yours) → **Register** with their email → selects role **CHA**
+4. They will only see consignments where their email is set as CHA Email
+5. They can tick CHA milestones and upload documents to CHA-tagged milestones only
 
 ### How to give Shipper access
 
-Same flow — enter their email in **Shipper Email** during consignment creation. Shipper registers with that email and sees only their consignment.
+Same flow — enter their email in the **Shipper Email** field during consignment creation. Shipper registers with that exact email and selects role **Shipper**.
 
-> **Important:** The email must match exactly — tell CHAs and Shippers to register with the same email you entered in the consignment form.
+> **Important:** The email entered in the consignment form must exactly match the email used to register. Case-sensitive.
 
 ---
 
 ## File Attachments
 
+- **Mandatory** — a milestone cannot be marked complete without at least one attachment
 - Accepted formats: PDF, JPG, PNG, XLSX, XLS, DOC, DOCX, CSV
-- Uploaded files appear as clickable chips under each milestone
-- Files open in a new browser tab
-- CHA can only upload to CHA milestones; Shippers to Shipper milestones; Freightysh anywhere
-- Files are stored in your Supabase project's Storage bucket
+- Uploaded files appear as clickable chips under each milestone, opening in a new tab
+- Files are stored in your Supabase Storage bucket (`attachments`)
+- Upload permissions are role-scoped: CHA → CHA milestones, Shipper → Shipper milestones, Freightysh → anywhere
 
 ---
 
@@ -146,11 +167,23 @@ Same flow — enter their email in **Shipper Email** during consignment creation
 
 | Resource | Free Limit | Notes |
 |----------|------------|-------|
-| Database | 500 MB | Thousands of consignments |
-| Storage | 1 GB | Plenty for shipping documents |
-| API requests | 50,000/month | Well within range |
+| Database | 500 MB | Comfortably handles thousands of consignments |
+| Storage | 1 GB | Ample for shipping documents |
+| API requests | 50,000 / month | Well within range for a small team |
 | Auth users | Unlimited | |
-| Realtime | 200 concurrent connections | |
+| Realtime connections | 200 concurrent | More than enough |
+
+---
+
+## Troubleshooting
+
+| Error | Fix |
+|-------|-----|
+| `Email signups are disabled` | Authentication → Providers → Email → Enable Email Provider: ON |
+| `Email not confirmed` | Authentication → Providers → Email → Confirm email: OFF |
+| `Email rate limit exceeded` | Authentication → Rate Limits → increase Email signups to 100/hr |
+| `relation "profiles" does not exist` | Re-run `schema.sql` — tables were not created in correct order |
+| Profile not found after login | Delete the user from Authentication → Users in Supabase, then register fresh |
 
 ---
 
@@ -158,19 +191,33 @@ Same flow — enter their email in **Shipper Email** during consignment creation
 
 ```
 freightysh-milestone-tracker/
-├── index.html    ← Entire app (single file, upload this to GitHub)
+├── index.html    ← Entire app (upload this to GitHub)
 ├── schema.sql    ← Run once in Supabase SQL Editor
 └── README.md     ← This file
 ```
 
 ---
 
+## Version History
+
+| Version | Changes |
+|---------|---------|
+| v1.0 | Initial localStorage-only tracker |
+| v1.1 | Supabase integration, real-time sync, multi-device |
+| v1.2 | Auth system, role-based access, file attachments, RLS |
+| v1.3 | Fixed signup flow — trigger-based profile creation, session fix |
+| v1.4 | Proper signup architecture — signIn after signUp guarantees session |
+| v1.5 | Mandatory attachments before milestone completion, version shown on all screens |
+
+---
+
 ## Security Notes
 
-- **Anon key**: Safe to expose — it's designed for client-side use. Supabase RLS policies enforce all access rules server-side.
-- **Row Level Security**: All data access is enforced at the database level, not just the UI. Even if someone inspects the code, they cannot query data outside their role.
-- **Freightysh role**: Currently self-selected on signup. For stricter control, you can add a DB trigger to reject `freightysh` role signups from unknown emails, or manually verify via Supabase dashboard.
-- **Storage**: Files are in a public bucket (readable by URL). For sensitive documents, switch to a private bucket and use signed URLs (requires code change).
+- **Anon key**: Safe to expose in the browser — designed for client-side use. All access rules are enforced server-side via RLS.
+- **Row Level Security**: CHA and Shipper cannot query any data outside their assigned consignment, even via the API directly.
+- **Profile creation**: Handled entirely by a server-side DB trigger — no client-side writes to the profiles table.
+- **Freightysh role**: Self-selected on signup. For stricter control, delete any unauthorized Freightysh registrations via Supabase Dashboard → Authentication → Users.
+- **Storage**: Files are in a public bucket (URL-accessible). For sensitive documents, switch to a private bucket with signed URLs.
 
 ---
 
